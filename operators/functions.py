@@ -34,6 +34,7 @@ def bake(active_scene,
     transparent_bdrop:
     """
 
+
     if background_color != None:
         background_color_store_R, background_color_store_G, background_color_store_B, background_color_store_A = active_scene.world.node_tree.nodes["Background"].inputs[0].default_value
         active_scene.world.node_tree.nodes["Background"].inputs[0].default_value = background_color
