@@ -6,7 +6,6 @@ def get_path_to_addon(addon_folder_name):
     script_folder.reverse()
 
     for path in script_folder:
-        print(path)
         path = os.path.join(path,'addons')
         if os.path.exists(path):
             if addon_folder_name in os.listdir(path):

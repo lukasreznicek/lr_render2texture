@@ -43,8 +43,8 @@ class LR_TOOLS_OT_r2t_append_mg(bpy.types.Operator):
         used_append = False
         if node_group == None:
             
-            path = get_path_to_addon('lr_cam_bake')
-            file_path = os.path.join(path,'resources','LR_Cam_Bake_Nodes.blend')
+            path = get_path_to_addon('lr_render2texture')
+            file_path = os.path.join(path,'resources','lr_render2texture.blend')
             inner_path = "NodeTree"
             bpy.ops.wm.append(filepath=str(os.path.join(file_path, inner_path, node_group_name)), directory=str(os.path.join(file_path, inner_path)),filename=str(node_group_name))
             node_group = bpy.data.node_groups.get(node_group_name)
