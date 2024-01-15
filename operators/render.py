@@ -8,7 +8,7 @@ class LR_TOOLS_OT_r2t_new_camera(bpy.types.Operator):
     # bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        lr_cam_bake = context.scene.lr_cam_bake
+        lr_cam_bake = context.scene.lr_render2texture
         # cursor_location = bpy.context.scene.cursor.location
         bpy.ops.object.camera_add(enter_editmode=False, align='WORLD', location=(0, 0, 1), rotation=(0, 0, 0), scale=(1, 1, 1))
 
@@ -107,7 +107,11 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
 
     def execute(self, context):
         has_errors = False
-        lr_cam_bake = context.scene.lr_cam_bake
+        
+        # Name of the node group
+        active_scene = bpy.context.scene
+        lr_cam_bake = context.scene.lr_render2texture
+
 
         def get_unique_curves(curves):
         
@@ -164,11 +168,9 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
         store_obj_selection = bpy.context.selected_objects #Excluding active obj
         store_obj_active = bpy.context.active_object
         
-        # Name of the node group
-        active_scene = bpy.context.scene
-        lr_cam_bake_settings = active_scene.lr_cam_bake
+
         node_group_name = "MF_LR_Bake_Input"
-        image_name = lr_cam_bake_settings.img_name
+        image_name = lr_cam_bake.img_name
         image_format = 'TGA'
         image_format_height = ''
 
@@ -206,7 +208,7 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
         
 
 
-        objs_enabled = [obj for obj in bpy.data.objects if obj.lr_cam_bake_obj.object_mode ==  'RENDERED']
+        objs_enabled = [obj for obj in bpy.data.objects if obj.lr_render2texture.object_mode ==  'RENDERED']
         if len(objs_enabled) == 0:
             message = f"No objects are set to be 'Rendered'."
             self.report({'WARNING'}, message)
@@ -326,19 +328,19 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
                 
 
             if lr_cam_bake.get('normal_fix_rotation'):
-                obj.lr_cam_bake_obj['obj_z_rotation'] = obj.matrix_world.to_euler('XYZ')[2]
+                obj.lr_render2texture['obj_z_rotation'] = obj.matrix_world.to_euler('XYZ')[2]
             else:
-                obj.lr_cam_bake_obj['obj_z_rotation'] = 0.0
+                obj.lr_render2texture['obj_z_rotation'] = 0.0
 
     
             if lr_cam_bake.get('normal_fix_scale'):
                 for i in range(3):
-                    obj.lr_cam_bake_obj['obj_scale'][i] = obj.matrix_world.to_scale()[i] 
+                    obj.lr_render2texture['obj_scale'][i] = obj.matrix_world.to_scale()[i] 
             else:
-                attr_scale = obj.lr_cam_bake_obj.get('obj_scale')
+                attr_scale = obj.lr_render2texture.get('obj_scale')
                 if attr_scale:
                     for i in range(3):
-                        obj.lr_cam_bake_obj['obj_scale'][i] = 1.0   
+                        obj.lr_render2texture['obj_scale'][i] = 1.0   
         
 
         
@@ -510,9 +512,9 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
         active_scene.render.image_settings.color_management = 'OVERRIDE'
 
 
-        if lr_cam_bake_settings.render_device == 'OP1':
+        if lr_cam_bake.render_device == 'OP1':
             active_scene.cycles.device = 'CPU'
-        elif lr_cam_bake_settings.render_device == 'OP2':
+        elif lr_cam_bake.render_device == 'OP2':
             active_scene.cycles.device = 'GPU'
         
 
@@ -534,8 +536,8 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
                         image_format= image_format,
                         #  display_device = 'sRGB',
                         view = 'Standard',
-                        resolution_x=lr_cam_bake_settings.resolution_x,
-                        resolution_y=lr_cam_bake_settings.resolution_y,
+                        resolution_x=lr_cam_bake.resolution_x,
+                        resolution_y=lr_cam_bake.resolution_y,
                         
                         render_denoise=False,
                         adaptive_sampling = False,
@@ -555,8 +557,8 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
                          image_format= image_format,
                          #  display_device = 'None', 
                          view = 'Raw',
-                         resolution_x=lr_cam_bake_settings.resolution_x,
-                         resolution_y=lr_cam_bake_settings.resolution_y,
+                         resolution_x=lr_cam_bake.resolution_x,
+                         resolution_y=lr_cam_bake.resolution_y,
                          
                          render_denoise=False,
                          adaptive_sampling = False,
@@ -576,8 +578,8 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
                          image_format= image_format,
                          #  display_device = 'None',
                          view = 'Raw',
-                         resolution_x=lr_cam_bake_settings.resolution_x,
-                         resolution_y=lr_cam_bake_settings.resolution_y,
+                         resolution_x=lr_cam_bake.resolution_x,
+                         resolution_y=lr_cam_bake.resolution_y,
                          
                          render_denoise=False,
                          adaptive_sampling = False,
@@ -596,8 +598,8 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
                          image_format= image_format,
                          #  display_device = 'None',
                          view = 'Raw',
-                         resolution_x=lr_cam_bake_settings.resolution_x,
-                         resolution_y=lr_cam_bake_settings.resolution_y,
+                         resolution_x=lr_cam_bake.resolution_x,
+                         resolution_y=lr_cam_bake.resolution_y,
                          
                          render_denoise=False,
                          adaptive_sampling = False,
@@ -616,8 +618,8 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
                         image_format= image_format,
                         #  display_device = 'None', 
                         view = 'Raw',
-                        resolution_x=lr_cam_bake_settings.resolution_x,
-                        resolution_y=lr_cam_bake_settings.resolution_y,
+                        resolution_x=lr_cam_bake.resolution_x,
+                        resolution_y=lr_cam_bake.resolution_y,
                         
                         render_denoise=False,
                         adaptive_sampling = False,
@@ -635,11 +637,11 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
                          image_name = image_name, 
                          image_format = image_format, 
                          #  display_device = 'None',
-                         resolution_x = lr_cam_bake_settings.resolution_x,
-                         resolution_y = lr_cam_bake_settings.resolution_y,
+                         resolution_x = lr_cam_bake.resolution_x,
+                         resolution_y = lr_cam_bake.resolution_y,
  
-                         render_denoise=lr_cam_bake_settings.render_ao_denoise,
-                         render_max_samples= lr_cam_bake_settings.render_ao_denoise_samples,
+                         render_denoise=lr_cam_bake.render_ao_denoise,
+                         render_max_samples= lr_cam_bake.render_ao_denoise_samples,
                          adaptive_sampling = False,
                          sample_clamp_indirect = 0.0001,
                          pixel_filter_type = 'BOX',
@@ -656,8 +658,8 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
                         image_format= image_format,
                         #  display_device = 'None',
                         view = 'Raw',
-                        resolution_x=lr_cam_bake_settings.resolution_x,
-                        resolution_y=lr_cam_bake_settings.resolution_y,
+                        resolution_x=lr_cam_bake.resolution_x,
+                        resolution_y=lr_cam_bake.resolution_y,
 
                         render_denoise=False,
                         adaptive_sampling = False,
@@ -676,8 +678,8 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
                         image_format= image_format,
                         #Display_device = 'None',
                         view = 'Raw',
-                        resolution_x=lr_cam_bake_settings.resolution_x,
-                        resolution_y=lr_cam_bake_settings.resolution_y,
+                        resolution_x=lr_cam_bake.resolution_x,
+                        resolution_y=lr_cam_bake.resolution_y,
                         
                         render_denoise=False,
                         adaptive_sampling = False,
@@ -696,8 +698,8 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
                          image_format= image_format_height,
                          #  display_device = 'None',
                          view = 'Raw',
-                         resolution_x=lr_cam_bake_settings.resolution_x,
-                         resolution_y=lr_cam_bake_settings.resolution_y,
+                         resolution_x=lr_cam_bake.resolution_x,
+                         resolution_y=lr_cam_bake.resolution_y,
                          render_denoise=False,
                          adaptive_sampling = False,
                          render_max_samples= 1,

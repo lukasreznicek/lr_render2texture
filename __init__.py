@@ -24,17 +24,13 @@ bl_info = {
 }
 
 
-addon_name = 'lr_cam_bake'
-
-
-
 from bpy.props import IntProperty, CollectionProperty, StringProperty,FloatVectorProperty,BoolProperty,EnumProperty
 from .operators.render import LR_TOOLS_OT_r2t_cam_bake,LR_TOOLS_OT_r2t_new_camera,LR_TOOLS_OT_r2t_append_mg
 
 # Properties 
 # To acess properties: bpy.data.scenes['Scene'].lr_cam_bake
 # Is assigned by pointer property below in class registration.
-class LR_CamBake_Settings(bpy.types.PropertyGroup):
+class LR_Render2Texture_Settings(bpy.types.PropertyGroup):
     # add_missing_mg: bpy.props.BoolProperty(name="Add Missing MG",description="Adds material group to a material when rendered object does not have it", default=True)
 
     resolution_x: bpy.props.IntProperty(name="W:", description="Rendered Texture Width", default=2048, min = 4, soft_max = 8192)
@@ -76,7 +72,7 @@ class LR_CamBake_Settings(bpy.types.PropertyGroup):
         max=1.0
     )
 
-class LR_CamBake_Settings_Object(bpy.types.PropertyGroup):
+class LR_Render2Texture_Settings_Object(bpy.types.PropertyGroup):
         # obj_render: bpy.props.BoolProperty(name="RenderObject",default=False)
         obj_z_rotation: bpy.props.FloatProperty(name="Object_Z_Rotation",default=0.0)
         obj_scale: bpy.props.FloatVectorProperty(name="Object_Scale",default=(1.0,1.0,1.0))
@@ -94,7 +90,7 @@ class LR_CamBake_Settings_Object(bpy.types.PropertyGroup):
 
 #UI -------------------------------------------------------------------------------------
 
-class VIEW3D_PT_lr_cam_bake_setup(bpy.types.Panel):
+class VIEW3D_PT_lr_Render2Texture_setup(bpy.types.Panel):
     bl_label = "R2T"
     bl_idname = "OBJECT_PT_lr_bake_setup"
     bl_space_type = 'VIEW_3D'
@@ -104,8 +100,8 @@ class VIEW3D_PT_lr_cam_bake_setup(bpy.types.Panel):
 
     def draw(self, context):
         
-        lr_cam_bake = context.scene.lr_cam_bake
-        lr_cam_bake_obj = context.object.lr_cam_bake_obj
+        lr_render2texture = context.scene.lr_render2texture
+        lr_render2texture_obj = context.object.lr_render2texture
 
         layout = self.layout.box()
         layout.label(text='Scene Settings:')
@@ -113,19 +109,19 @@ class VIEW3D_PT_lr_cam_bake_setup(bpy.types.Panel):
 
         # layout.label(text="Render")
         row = layout.row(align=True)
-        row.prop(lr_cam_bake, 'img_name')
+        row.prop(lr_render2texture, 'img_name')
 
         row = layout.row(align=True)
-        row.prop(lr_cam_bake, "resolution_x")
-        row.prop(lr_cam_bake, "resolution_y")
+        row.prop(lr_render2texture, "resolution_x")
+        row.prop(lr_render2texture, "resolution_y")
         # row = layout.row(align=True)
         
         row = layout.row(align=True)
-        row.prop(lr_cam_bake, 'render_device')
+        row.prop(lr_render2texture, 'render_device')
 
 
         row = layout.row(align=True)
-        row.prop(lr_cam_bake, 'export_path')
+        row.prop(lr_render2texture, 'export_path')
 
         # row = layout.row(align=True)
         # row.prop(lr_cam_bake, 'add_missing_mg')
@@ -137,21 +133,21 @@ class VIEW3D_PT_lr_cam_bake_setup(bpy.types.Panel):
         layout.label(text='Object Settings:')
 
         row = layout.row(align=True)
-        row.prop(lr_cam_bake_obj, 'object_mode', text ='Object Mode', icon='OBJECT_DATA', expand=True, icon_only =False)
+        row.prop(lr_render2texture_obj, 'object_mode', text ='Object Mode', icon='OBJECT_DATA', expand=True, icon_only =False)
 
 
         layout = self.layout.box()
         layout.label(text='Textures to render:')
         collumn_f = layout.column_flow(columns=2, align=True)
-        collumn_f.prop(lr_cam_bake, "render_albedo", text="Albedo")
-        collumn_f.prop(lr_cam_bake, "render_normal", text="Normal")
-        collumn_f.prop(lr_cam_bake, "render_normal_combined", text="Normal Combined")
-        collumn_f.prop(lr_cam_bake, "render_ao", text="AO")
-        collumn_f.prop(lr_cam_bake, "render_roughness", text="Roughness")
-        collumn_f.prop(lr_cam_bake, "render_metallic", text="Metallic")
-        collumn_f.prop(lr_cam_bake, "render_height", text="Height")
-        collumn_f.prop(lr_cam_bake, "render_ao_scene", text="AO Scene")
-        collumn_f.prop(lr_cam_bake, "render_alpha", text="Alpha")
+        collumn_f.prop(lr_render2texture, "render_albedo", text="Albedo")
+        collumn_f.prop(lr_render2texture, "render_normal", text="Normal")
+        collumn_f.prop(lr_render2texture, "render_normal_combined", text="Normal Combined")
+        collumn_f.prop(lr_render2texture, "render_ao", text="AO")
+        collumn_f.prop(lr_render2texture, "render_roughness", text="Roughness")
+        collumn_f.prop(lr_render2texture, "render_metallic", text="Metallic")
+        collumn_f.prop(lr_render2texture, "render_height", text="Height")
+        collumn_f.prop(lr_render2texture, "render_ao_scene", text="AO Scene")
+        collumn_f.prop(lr_render2texture, "render_alpha", text="Alpha")
 
         layout = self.layout.box()
         row = layout.row(align=True)
@@ -163,7 +159,7 @@ class VIEW3D_PT_lr_cam_bake_setup(bpy.types.Panel):
         op = row.operator("lr_tools.r2t_cam_bake", text="Render", icon = 'EXPORT')
 
 
-class VIEW3D_PT_lr_cam_bake_alpha(bpy.types.Panel):
+class VIEW3D_PT_lr_Render2Texture_alpha(bpy.types.Panel):
     bl_label = "Alpha Texture"
     bl_idname = "OBJECT_PT_lr_render_alpha"
     bl_space_type = 'VIEW_3D'
@@ -173,16 +169,16 @@ class VIEW3D_PT_lr_cam_bake_alpha(bpy.types.Panel):
         
     @classmethod
     def poll(cls, context):
-        return context.scene.lr_cam_bake.render_alpha
+        return context.scene.lr_render2texture.render_alpha
 
     def draw(self, context):
-        lr_cam_bake = context.scene.lr_cam_bake
+        lr_render2texture = context.scene.lr_render2texture
 
         layout = self.layout.box()
         row = layout.row(align=True)
-        row.prop(lr_cam_bake, 'render_alpha_samples')
+        row.prop(lr_render2texture, 'render_alpha_samples')
 
-class VIEW3D_PT_lr_cam_bake_ao_scene(bpy.types.Panel):
+class VIEW3D_PT_lr_Render2Texture_ao_scene(bpy.types.Panel):
     bl_label = "AO Scene"
     bl_idname = "OBJECT_PT_lr_bake_ao_scene"
     bl_space_type = 'VIEW_3D'
@@ -192,21 +188,21 @@ class VIEW3D_PT_lr_cam_bake_ao_scene(bpy.types.Panel):
         
     @classmethod
     def poll(cls, context):
-        return context.scene.lr_cam_bake.render_ao_scene
+        return context.scene.lr_render2texture.render_ao_scene
 
     def draw(self, context):
-        lr_cam_bake = context.scene.lr_cam_bake
+        lr_render2texture = context.scene.lr_render2texture
 
         layout = self.layout.box()
         row = layout.row(align=True)
 
         row = layout.row(align=True)
-        row.prop(lr_cam_bake, 'render_ao_denoise_samples')
-        row.prop(lr_cam_bake, 'render_ao_denoise')
+        row.prop(lr_render2texture, 'render_ao_denoise_samples')
+        row.prop(lr_render2texture, 'render_ao_denoise')
         row = layout.row(align=True)
-        row.prop(lr_cam_bake, 'render_ao_film_transparency')
+        row.prop(lr_render2texture, 'render_ao_film_transparency')
     
-class VIEW3D_PT_lr_cam_bake_normal(bpy.types.Panel):
+class VIEW3D_PT_lr_Render2Texture_normal(bpy.types.Panel):
     bl_label = "Normal"
     bl_idname = "OBJECT_PT_lr_bake_normal"
     bl_space_type = 'VIEW_3D'
@@ -217,30 +213,30 @@ class VIEW3D_PT_lr_cam_bake_normal(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
 
-        if context.scene.lr_cam_bake.render_normal or context.scene.lr_cam_bake.render_normal_combined:
+        if context.scene.lr_render2texture.render_normal or context.scene.lr_render2texture.render_normal_combined:
             ret =  True
         else:
             ret = False
         return ret
 
     def draw(self, context):
-        lr_cam_bake = context.scene.lr_cam_bake
+        lr_render2texture = context.scene.lr_render2texture
 
         layout = self.layout.box()
         row = layout.row(align=True)
-        row.prop(lr_cam_bake, 'render_normal_samples')
+        row.prop(lr_render2texture, 'render_normal_samples')
         row = layout.row(align=True)
-        row.prop(lr_cam_bake, 'normal_fix_rotation')
-        row.prop(lr_cam_bake, 'normal_fix_scale')
+        row.prop(lr_render2texture, 'normal_fix_rotation')
+        row.prop(lr_render2texture, 'normal_fix_scale')
         
 
-classes = (LR_CamBake_Settings,
-           LR_CamBake_Settings_Object,
+classes = (LR_Render2Texture_Settings,
+           LR_Render2Texture_Settings_Object,
 
-           VIEW3D_PT_lr_cam_bake_setup,
-           VIEW3D_PT_lr_cam_bake_normal,
-           VIEW3D_PT_lr_cam_bake_alpha,
-           VIEW3D_PT_lr_cam_bake_ao_scene,
+           VIEW3D_PT_lr_Render2Texture_setup,
+           VIEW3D_PT_lr_Render2Texture_normal,
+           VIEW3D_PT_lr_Render2Texture_alpha,
+           VIEW3D_PT_lr_Render2Texture_ao_scene,
 
            LR_TOOLS_OT_r2t_cam_bake,
            LR_TOOLS_OT_r2t_new_camera,
@@ -249,11 +245,11 @@ classes = (LR_CamBake_Settings,
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-    bpy.types.Scene.lr_cam_bake = bpy.props.PointerProperty(type=LR_CamBake_Settings)
-    bpy.types.Object.lr_cam_bake_obj = bpy.props.PointerProperty(type=LR_CamBake_Settings_Object)
+    bpy.types.Scene.lr_render2texture = bpy.props.PointerProperty(type=LR_Render2Texture_Settings)
+    bpy.types.Object.lr_render2texture = bpy.props.PointerProperty(type=LR_Render2Texture_Settings_Object)
 
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
-    del bpy.types.Scene.lr_cam_bake
-    del bpy.types.Object.lr_cam_bake_obj
+    del bpy.types.Scene.lr_render2texture
+    del bpy.types.Object.lr_render2texture
