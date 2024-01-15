@@ -1,19 +1,23 @@
+import bpy,os
+         
+        
+        
 def bake(active_scene,
-        background_color = (0,0,0,1),
-        image_name:str = 'ImageRender',
-        image_prefix:str = 'T_' ,
-        image_suffix:str = '' ,
-        image_format:str = 'TARGA',
-        image_depth:int = 'None',
-        display_device:str ='',
-        render_denoise = None,
-        render_max_samples= None,
-        render_engine= 'CYCLES',
-        render_using = None,
-        render_resolution = (1024,1024),
-        sample_clamp_indirect = None,
-        filepath = '//BakeOutput/',
-        transparent_bdrop = None):  #True,False
+    background_color = (0,0,0,1),
+    image_name:str = 'ImageRender',
+    image_prefix:str = 'T_' ,
+    image_suffix:str = '' ,
+    image_format:str = 'TARGA',
+    image_depth:int = 'None',
+    display_device:str ='',
+    render_denoise = None,
+    render_max_samples= None,
+    render_engine= 'CYCLES',
+    render_using = None,
+    render_resolution = (1024,1024),
+    sample_clamp_indirect = None,
+    filepath = '//BakeOutput/',
+    transparent_bdrop = None):  #True,False
  
     
     """
@@ -147,6 +151,24 @@ def bake(active_scene,
         active_scene.render.film_transparent = store_transparent_bdrop
 
 
+    
+
+
+    
+
+    
+def get_path_to_addon(addon_folder_name):
+    script_folder = bpy.utils.script_paths()
+    script_folder.reverse()
+
+    for path in script_folder:
+        print(path)
+        path = os.path.join(path,'addons')
+        if os.path.exists(path):
+            if addon_folder_name in os.listdir(path):
+                return os.path.join(path,addon_folder_name)
+            else:
+                return None
 
 # Get the node group
 def get_material_group_outputs(material_group_name):
