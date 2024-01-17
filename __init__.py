@@ -25,13 +25,13 @@ bl_info = {
 
 
 from bpy.props import IntProperty, CollectionProperty, StringProperty,FloatVectorProperty,BoolProperty,EnumProperty
-from .operators.render import LR_TOOLS_OT_r2t_cam_bake,LR_TOOLS_OT_r2t_new_camera,LR_TOOLS_OT_r2t_append_mg
+from .operators.render import LR_TOOLS_OT_R2T_Render,LR_TOOLS_OT_r2t_new_camera,LR_TOOLS_OT_r2t_append_mg
 
 # Properties 
 # To acess properties: bpy.data.scenes['Scene'].lr_cam_bake
 # Is assigned by pointer property below in class registration.
 class LR_Render2Texture_Settings(bpy.types.PropertyGroup):
-    # add_missing_mg: bpy.props.BoolProperty(name="Add Missing MG",description="Adds material group to a material when rendered object does not have it", default=True)
+    add_missing_ng: bpy.props.BoolProperty(name="Add Missing NG",description="Adds node group to a material when rendered object does not have it", default=True)
 
     resolution_x: bpy.props.IntProperty(name="W:", description="Rendered Texture Width", default=2048, min = 4, soft_max = 8192)
     resolution_y: bpy.props.IntProperty(name="H:", description="Rendered Texture Height", default=2048, min = 4, soft_max = 8192)
@@ -41,7 +41,7 @@ class LR_Render2Texture_Settings(bpy.types.PropertyGroup):
     export_path:bpy.props.StringProperty(name="Export Path", description="// = .blend file location\n//..\ = .blend file parent folder", default="//RenderOutput/", maxlen=1024,subtype='DIR_PATH')
     img_name:bpy.props.StringProperty(name="Texture Name", description="Name of the rendered image", default="ImageRender")    
     img_height_suffix:bpy.props.StringProperty(name="Suffix", description="", default="_H")
-    coll_ptr: bpy.props.PointerProperty(name="Collection", type=bpy.types.Collection, description="Only Objects in this collection will be rendered")
+    # coll_ptr: bpy.props.PointerProperty(name="Collection", type=bpy.types.Collection, description="Only Objects in this collection will be rendered")
     
     
     render_normal: bpy.props.BoolProperty(name="Render Height Texture Input", default=False, description='Normal Texture input into function\nNormal texture straight into node group. Do not add NormalMap node after texture')
@@ -53,12 +53,16 @@ class LR_Render2Texture_Settings(bpy.types.PropertyGroup):
     render_albedo: bpy.props.BoolProperty(name="Render Albedo Texture Input", default=False)
 
     render_ao: bpy.props.BoolProperty(name="Render AO Texture Input", default=False)
+    
     render_ao_film_transparency: bpy.props.BoolProperty(name='Film Transparent',description="Use Transparent background Instead", default=False)
+    render_ao_scene: bpy.props.BoolProperty(name="Render AO Scene", default=False, description='AO Bake from scene')
+    render_ao_material: bpy.props.BoolProperty(name="Render AO Material", default=False, description='AO Make From Material node AO. Standart bake. Does not work with transparency')
+    # render_ao_material_only_local: bpy.props.BoolProperty(name="Render AO Material", default=False, description='Only consider the object itself when computing AO')
 
     render_roughness: bpy.props.BoolProperty(name="Render Roughness Texture Input", default=False)
     render_metallic: bpy.props.BoolProperty(name="Render Metallic Texture Input", default=False)
     render_height: bpy.props.BoolProperty(name="Render Height Texture Input", default=False)
-    render_ao_scene: bpy.props.BoolProperty(name="Render AO Scene", default=False, description='AO Bake from scene')
+
     render_alpha: bpy.props.BoolProperty(name="Render Alpha Texture Input ", default=False)
     render_alpha_samples: bpy.props.IntProperty(default=1, min = 1, soft_max = 512, name="Alpha Samples", description="Number of rays per pixel.\n1 is fine but aliasing could be achieved with more samples per pixel. 10 should be fine for removing aliasing")
 
@@ -123,11 +127,11 @@ class VIEW3D_PT_lr_Render2Texture_setup(bpy.types.Panel):
         row = layout.row(align=True)
         row.prop(lr_render2texture, 'export_path')
 
-        # row = layout.row(align=True)
-        # row.prop(lr_cam_bake, 'add_missing_mg')
-        # row = layout.row(align=True)
-        # row.scale_y = 1  # Increase the height
-        # row.prop(lr_cam_bake, "coll_ptr", text="Collection")
+        
+
+        row = layout.row(align=True)
+        row.prop(lr_render2texture, 'add_missing_ng')
+
 
         layout = self.layout.box()
         layout.label(text='Object Settings:')
@@ -147,6 +151,7 @@ class VIEW3D_PT_lr_Render2Texture_setup(bpy.types.Panel):
         collumn_f.prop(lr_render2texture, "render_metallic", text="Metallic")
         collumn_f.prop(lr_render2texture, "render_height", text="Height")
         collumn_f.prop(lr_render2texture, "render_ao_scene", text="AO Scene")
+        collumn_f.prop(lr_render2texture, "render_ao_material", text="AO Material")
         collumn_f.prop(lr_render2texture, "render_alpha", text="Alpha")
 
         layout = self.layout.box()
@@ -156,7 +161,7 @@ class VIEW3D_PT_lr_Render2Texture_setup(bpy.types.Panel):
 
         row = layout.row(align=True)
         row.scale_y = 2  # Increase the height
-        op = row.operator("lr_tools.r2t_cam_bake", text="Render", icon = 'EXPORT')
+        op = row.operator("lr_tools.r2t_render", text="Render", icon = 'EXPORT')
 
 
 class VIEW3D_PT_lr_Render2Texture_alpha(bpy.types.Panel):
@@ -238,7 +243,7 @@ classes = (LR_Render2Texture_Settings,
            VIEW3D_PT_lr_Render2Texture_alpha,
            VIEW3D_PT_lr_Render2Texture_ao_scene,
 
-           LR_TOOLS_OT_r2t_cam_bake,
+           LR_TOOLS_OT_R2T_Render,
            LR_TOOLS_OT_r2t_new_camera,
            LR_TOOLS_OT_r2t_append_mg)
 

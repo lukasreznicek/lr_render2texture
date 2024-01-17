@@ -36,20 +36,19 @@ class LR_TOOLS_OT_r2t_append_mg(bpy.types.Operator):
 
     def execute(self, context):
         
-        node_group_name = "MF_LR_Bake_Input"
+        node_group_name = "NG_LR_R2T"
+
         node_group = bpy.data.node_groups.get(node_group_name)
         selected_objects = bpy.context.selected_objects
 
         used_append = False
-        if node_group == None:
-            
+        if node_group == None:            
             path = get_path_to_addon('lr_render2texture')
             file_path = os.path.join(path,'resources','lr_render2texture.blend')
             inner_path = "NodeTree"
             bpy.ops.wm.append(filepath=str(os.path.join(file_path, inner_path, node_group_name)), directory=str(os.path.join(file_path, inner_path)),filename=str(node_group_name))
             node_group = bpy.data.node_groups.get(node_group_name)
             used_append = True
- 
 
         if node_group:
             for obj in selected_objects: 
@@ -61,17 +60,21 @@ class LR_TOOLS_OT_r2t_append_mg(bpy.types.Operator):
                         material = material_slot.material
 
                         has_nodegroup = False
+                        
+                        # has_nodegroup = any(node.type == 'GROUP' and type(node.node_tree) != type(None) and node.node_tree.name == node_group_name  for node_tree.nodes in material.node_tree.nodes if material.use_nodes)
                         if material.use_nodes:
                             node_tree = material.node_tree
                             
                             for node in node_tree.nodes: # Check if the node group is not already present in the material
-                                if node.type == 'GROUP':
-                                    if node.node_tree.name == node_group.name:
+                                if node.type == 'GROUP' and type(node.node_tree) != type(None):
+                                    if node.node_tree.name == node_group_name:
                                         has_nodegroup = True
-
+                                        break
+                                    
                             if has_nodegroup == False:
                                 group_node = node_tree.nodes.new(type='ShaderNodeGroup')
                                 group_node.node_tree = node_group
+                                group_node.name = node_group_name
 
         else:
             message = "Can't append MG."
@@ -98,8 +101,8 @@ def get_materials_list(objs)-> list:
     return materials_list
 
 
-class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
-    bl_idname = "lr_tools.r2t_cam_bake"
+class LR_TOOLS_OT_R2T_Render(bpy.types.Operator):
+    bl_idname = "lr_tools.r2t_render"
     bl_label = "For baking atlas textures using camera"
     bl_description = "Render selected textures. Info about renders in console"
     # bl_options = {'REGISTER', 'UNDO'}
@@ -169,7 +172,7 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
         store_obj_active = bpy.context.active_object
         
 
-        node_group_name = "MF_LR_Bake_Input"
+        node_group_name = "NG_LR_R2T"
         image_name = lr_cam_bake.img_name
         image_format = 'TGA'
         image_format_height = ''
@@ -183,14 +186,14 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
             return {'CANCELLED'}           
 
             
-        mf_check = False
+        ng_check = False
         for mf in bpy.data.node_groups:
-            if mf.name == 'MF_LR_Bake_Input':
-                mf_check = True
+            if mf.name == node_group_name:
+                ng_check = True
 
 
         
-        if mf_check == False:
+        if ng_check == False:
             message = f'Scene needs to have {node_group_name}. Should be in library. Open material editor and search for it.'
             self.report({'ERROR'}, message)
             return {'CANCELLED'}      
@@ -306,6 +309,17 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
         objects_rendered.extend(flattened_objects)
 
 
+        if lr_cam_bake.add_missing_ng == True:
+            s_select = bpy.context.selected_objects
+            bpy.ops.object.select_all(action='DESELECT')
+            for obj in objects_rendered:
+                obj.select_set(True)
+
+            bpy.ops.lr_tools.r2t_append_mg()
+
+            bpy.ops.object.select_all(action='DESELECT')
+            for obj in s_select:
+                obj.select_set(True)
 
 
 
@@ -313,14 +327,18 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
         mats = get_materials_list(objects_rendered)
         for mat in mats:
             has_group = False
-            for node in mat.node_tree.nodes:
-                if node.type == 'GROUP':
-                    if node.node_tree.name == node_group_name:
-                        has_group = True
-            if has_group == False:
-                has_errors = True
-                message = f'Material {mat.name} does not have {node_group_name} node group.'
-                self.report({"WARNING"}, message=message)
+
+            if mat.use_nodes:
+                for node in mat.node_tree.nodes:
+                    if node.type == 'GROUP' and type(node.node_tree) != type(None):
+                        if node.node_tree.name == node_group_name:
+                            has_group = True
+                            break
+
+                if has_group == False:
+                    has_errors = True
+                    message = f'Material {mat.name} does not have {node_group_name} node group.'
+                    self.report({"WARNING"}, message=message)
 
         #Store property with rotation
         for obj in objects_rendered:
@@ -647,6 +665,29 @@ class LR_TOOLS_OT_r2t_cam_bake(bpy.types.Operator):
                          pixel_filter_type = 'BOX',
                          render_name = 'AO Scene')   
             
+            # if lr_cam_bake.get('render_ao_scene'): 
+            if lr_cam_bake.render_ao_material: 
+                if output.name == 'Occlusion_Material':
+                    bake(active_scene= active_scene,
+                         film_transparency= True,
+                         image_suffix= '_Material_O',
+                         background_color=(1,1,1,1), 
+                         image_name = image_name, 
+                         image_format = image_format, 
+                         #  display_device = 'None',
+                         resolution_x = lr_cam_bake.resolution_x,
+                         resolution_y = lr_cam_bake.resolution_y,
+ 
+                         render_denoise=lr_cam_bake.render_ao_denoise,
+                         render_max_samples= lr_cam_bake.render_ao_denoise_samples,
+                         adaptive_sampling = False,
+                         sample_clamp_indirect = None,
+                         pixel_filter_type = 'BOX',
+                         render_name = 'AO Material')   
+
+
+
+        
             # if lr_cam_bake.get('render_roughness'):
             if lr_cam_bake.render_roughness:
                 if output.name == 'Roughness':
