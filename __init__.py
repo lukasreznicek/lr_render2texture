@@ -10,6 +10,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+
 import bpy
 
 bl_info = {
@@ -25,13 +27,16 @@ bl_info = {
 
 
 from bpy.props import IntProperty, CollectionProperty, StringProperty,FloatVectorProperty,BoolProperty,EnumProperty
-from .operators.render import LR_TOOLS_OT_R2T_Render,LR_TOOLS_OT_r2t_new_camera,LR_TOOLS_OT_r2t_append_mg
+from .operators.render import LR_TOOLS_OT_R2T_Render,LR_TOOLS_OT_r2t_new_camera,LR_TOOLS_OT_r2t_append_ng
 
-# Properties 
+# Properties
 # To acess properties: bpy.data.scenes['Scene'].lr_cam_bake
 # Is assigned by pointer property below in class registration.
+
+
 class LR_Render2Texture_Settings(bpy.types.PropertyGroup):
-    add_missing_ng: bpy.props.BoolProperty(name="Add Missing NG",description="Adds node group to a material when rendered object does not have it", default=True)
+    # add_missing_ng: bpy.props.BoolProperty(name="Add Missing NG",description="Adds node group to a material when rendered object does not have it", default=True)
+    
 
     resolution_x: bpy.props.IntProperty(name="W:", description="Rendered Texture Width", default=2048, min = 4, soft_max = 8192)
     resolution_y: bpy.props.IntProperty(name="H:", description="Rendered Texture Height", default=2048, min = 4, soft_max = 8192)
@@ -45,21 +50,33 @@ class LR_Render2Texture_Settings(bpy.types.PropertyGroup):
     
     
     render_normal: bpy.props.BoolProperty(name="Render Height Texture Input", default=False, description='Normal Texture input into function\nNormal texture straight into node group. Do not add NormalMap node after texture')
-    render_normal_combined: bpy.props.BoolProperty(name="Render Height Texture Input", default=True, description='Normal Texture function input + Geometry Normal\nNormal texture straight into node group. Do not add NormalMap node after texture\n\nIf only Geometry normals are needed, leave normal map empty in node group')
-    render_normal_samples: bpy.props.IntProperty(default=1, min = 1, soft_max = 512, name="Normal Samples", description="Number of rays per pixel.\n1 is fine but aliasing could be achieved with more samples per pixel. 10 should be fine for removing aliasing")
-    normal_fix_rotation: bpy.props.BoolProperty(name='Rotation Fix',description="Normal map texture source rotation will be adjusted based on object rotation and baked", default=False)
+    normal_combine: bpy.props.BoolProperty(name="Add Geometry Normal", default=True, description='Combine texture input normal with geometry normal\n if thexture input is empty, output is geometry normal only')
+    # render_normal_inpaint: bpy.props.BoolProperty(name="Inpaint", default=True, description='Postprocessing inpaint')
+
+    normal_render_samples: bpy.props.IntProperty(default=1, min = 1, soft_max = 512, name="Normal Samples", description="Number of rays per pixel.\n1 is fine but aliasing could be achieved with more samples per pixel. 10 should be fine for removing aliasing")
+    normal_fix_rotation: bpy.props.BoolProperty(name='Rotation Fix',description="Normal map texture source rotation will be adjusted based on object rotation and baked. Will not work with applied rotation on an object", default=False)
     normal_fix_scale: bpy.props.BoolProperty(name='Scale Fix',description="Normal map intensity will be scaled based on object scale", default=False)
 
-    render_albedo: bpy.props.BoolProperty(name="Render Albedo Texture Input", default=False)
+
+
+    albedo_render: bpy.props.BoolProperty(name="Render Base Color Texture Input", default=False)
+    albedo_render_samples: bpy.props.IntProperty(name="Samples", default=1)
+
+
 
     render_ao: bpy.props.BoolProperty(name="Render AO Texture Input", default=False)
     
     render_ao_film_transparency: bpy.props.BoolProperty(name='Film Transparent',description="Use Transparent background Instead", default=False)
     render_ao_scene: bpy.props.BoolProperty(name="Render AO Scene", default=False, description='AO Bake from scene')
-    render_ao_material: bpy.props.BoolProperty(name="Render AO Material", default=False, description='AO Make From Material node AO. Standart bake. Does not work with transparency')
+    render_ao_material: bpy.props.BoolProperty(name="Render AO Material", default=False, description='Ambient Occlusion from material node. Does not work with transparency')
     # render_ao_material_only_local: bpy.props.BoolProperty(name="Render AO Material", default=False, description='Only consider the object itself when computing AO')
 
     render_roughness: bpy.props.BoolProperty(name="Render Roughness Texture Input", default=False)
+    
+    # #Post process
+    # post_inpaint: bpy.props.BoolProperty(name="Inpaint", default = True)
+
+
     render_metallic: bpy.props.BoolProperty(name="Render Metallic Texture Input", default=False)
     render_height: bpy.props.BoolProperty(name="Render Height Texture Input", default=False)
 
@@ -98,18 +115,35 @@ class VIEW3D_PT_lr_Render2Texture_setup(bpy.types.Panel):
     bl_label = "R2T"
     bl_idname = "OBJECT_PT_lr_bake_setup"
     bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
+    bl_region_type = 'UI'   
     bl_category = 'LR R2T'
-            
+
+    # @classmethod
+    # def poll(cls, context):
+    #     # return context.active_object is not None
+    #     return True 
+    
+    # def draw(self, context):
 
     def draw(self, context):
+
         
         lr_render2texture = context.scene.lr_render2texture
-        lr_render2texture_obj = context.object.lr_render2texture
+        # 
+
+        cam_obj = bpy.data.objects.get('LR_RenderToTexture')
+        
+        if (cam_obj != None and cam_obj.type != 'CAMERA') or (cam_obj == None):
+            layout = self.layout.box()
+            row = layout.row(align=True)
+            row.operator("lr_tools.r2t_new_camera", text="Add Cam", icon = 'CAMERA_DATA')
+            row.scale_y = 2
+            return 
+        
+
 
         layout = self.layout.box()
         layout.label(text='Scene Settings:')
-
 
         # layout.label(text="Render")
         row = layout.row(align=True)
@@ -127,125 +161,122 @@ class VIEW3D_PT_lr_Render2Texture_setup(bpy.types.Panel):
         row = layout.row(align=True)
         row.prop(lr_render2texture, 'export_path')
 
-        
 
-        row = layout.row(align=True)
-        row.prop(lr_render2texture, 'add_missing_ng')
+        # layout = self.layout.box()
+        # layout.label(text='PostPro Settings:')
+
+
+
+            
+
+
+
+        # header, panel = layout.panel("settings_inpaint", default_closed=False)
+        # header.label(text="Inpaint")
+        # if panel:
+        #     lr_render2texture = context.scene.lr_render2texture
+        #     panel.prop(lr_render2texture, "post_inpaint")
 
 
         layout = self.layout.box()
         layout.label(text='Object Settings:')
 
+        lr_render2texture_obj = context.object.lr_render2texture
         row = layout.row(align=True)
         row.prop(lr_render2texture_obj, 'object_mode', text ='Object Mode', icon='OBJECT_DATA', expand=True, icon_only =False)
+
 
 
         layout = self.layout.box()
         layout.label(text='Textures to render:')
         collumn_f = layout.column_flow(columns=2, align=True)
-        collumn_f.prop(lr_render2texture, "render_albedo", text="Albedo")
+        collumn_f.prop(lr_render2texture, "albedo_render", text="Base Color")
+        collumn_f.prop(lr_render2texture, "render_alpha", text="Alpha")
         collumn_f.prop(lr_render2texture, "render_normal", text="Normal")
-        collumn_f.prop(lr_render2texture, "render_normal_combined", text="Normal Combined")
         collumn_f.prop(lr_render2texture, "render_ao", text="AO")
         collumn_f.prop(lr_render2texture, "render_roughness", text="Roughness")
         collumn_f.prop(lr_render2texture, "render_metallic", text="Metallic")
         collumn_f.prop(lr_render2texture, "render_height", text="Height")
         collumn_f.prop(lr_render2texture, "render_ao_scene", text="AO Scene")
         collumn_f.prop(lr_render2texture, "render_ao_material", text="AO Material")
-        collumn_f.prop(lr_render2texture, "render_alpha", text="Alpha")
+        
+
 
         layout = self.layout.box()
         row = layout.row(align=True)
         row.operator("lr_tools.r2t_new_camera", text="Add Cam", icon = 'CAMERA_DATA')
-        row.operator("lr_tools.r2t_append_mg", text="Add MF", icon = 'NODE_MATERIAL')
+        row.operator("lr_tools.r2t_append_ng", text="Add MF", icon = 'NODE_MATERIAL')
 
         row = layout.row(align=True)
         row.scale_y = 2  # Increase the height
         op = row.operator("lr_tools.r2t_render", text="Render", icon = 'EXPORT')
 
+        layout = self.layout
+        scene = context.scene
 
-class VIEW3D_PT_lr_Render2Texture_alpha(bpy.types.Panel):
-    bl_label = "Alpha Texture"
-    bl_idname = "OBJECT_PT_lr_render_alpha"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'LR R2T'
-    bl_parent_id = "OBJECT_PT_lr_bake_setup"
-        
-    @classmethod
-    def poll(cls, context):
-        return context.scene.lr_render2texture.render_alpha
+        # layout.label(text="Render Settings")
 
-    def draw(self, context):
         lr_render2texture = context.scene.lr_render2texture
-
-        layout = self.layout.box()
-        row = layout.row(align=True)
-        row.prop(lr_render2texture, 'render_alpha_samples')
-
-class VIEW3D_PT_lr_Render2Texture_ao_scene(bpy.types.Panel):
-    bl_label = "AO Scene"
-    bl_idname = "OBJECT_PT_lr_bake_ao_scene"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'LR R2T'
-    bl_parent_id = "OBJECT_PT_lr_bake_setup"
         
-    @classmethod
-    def poll(cls, context):
-        return context.scene.lr_render2texture.render_ao_scene
+        if context.scene.lr_render2texture.render_alpha:
+            header, panel = layout.panel("settings_alpha", default_closed=True)
+            header.label(text="Alpha")
+            if panel:
+                # row = layout.row(align=True)
+                panel.prop(lr_render2texture, 'render_alpha_samples')
 
-    def draw(self, context):
-        lr_render2texture = context.scene.lr_render2texture
+        if context.scene.lr_render2texture.render_ao_scene:
+            header, panel = layout.panel("settings_ao_scene", default_closed=False)
+            header.label(text="AO Scene")
+            if panel:
+                lr_render2texture = context.scene.lr_render2texture
+                # row = layout.row(align=True)
+                panel.prop(lr_render2texture, 'render_ao_denoise_samples')
+                panel.prop(lr_render2texture, 'render_ao_denoise')
+                panel.prop(lr_render2texture, 'render_ao_film_transparency')
 
-        layout = self.layout.box()
-        row = layout.row(align=True)
 
-        row = layout.row(align=True)
-        row.prop(lr_render2texture, 'render_ao_denoise_samples')
-        row.prop(lr_render2texture, 'render_ao_denoise')
-        row = layout.row(align=True)
-        row.prop(lr_render2texture, 'render_ao_film_transparency')
-    
-class VIEW3D_PT_lr_Render2Texture_normal(bpy.types.Panel):
-    bl_label = "Normal"
-    bl_idname = "OBJECT_PT_lr_bake_normal"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'LR R2T'
-    bl_parent_id = "OBJECT_PT_lr_bake_setup"
-        
-    @classmethod
-    def poll(cls, context):
 
-        if context.scene.lr_render2texture.render_normal or context.scene.lr_render2texture.render_normal_combined:
-            ret =  True
-        else:
-            ret = False
-        return ret
 
-    def draw(self, context):
-        lr_render2texture = context.scene.lr_render2texture
+        if context.scene.lr_render2texture.render_normal:
+            header, panel = layout.panel("settings_normal", default_closed=True)
+            header.label(text="Normal")
+            if panel:
+                lr_render2texture = context.scene.lr_render2texture
+                # row = layout.row(align=True)
+                panel.prop(lr_render2texture, 'normal_combine')
+                # panel.prop(lr_render2texture, 'render_normal_inpaint')
+                panel.prop(lr_render2texture, 'normal_render_samples')
+                panel.prop(lr_render2texture, 'normal_fix_rotation')
+                panel.prop(lr_render2texture, 'normal_fix_scale')
 
-        layout = self.layout.box()
-        row = layout.row(align=True)
-        row.prop(lr_render2texture, 'render_normal_samples')
-        row = layout.row(align=True)
-        row.prop(lr_render2texture, 'normal_fix_rotation')
-        row.prop(lr_render2texture, 'normal_fix_scale')
+
+        if context.scene.lr_render2texture.albedo_render:
+            header, panel = layout.panel("color_settings", default_closed=True)
+            header.label(text="Base Color")
+            if panel:
+                lr_render2texture = context.scene.lr_render2texture
+                # row = layout.row(align=True)
+                panel.prop(lr_render2texture, 'albedo_render_samples')
+
+
+
+
+
+
         
 
 classes = (LR_Render2Texture_Settings,
            LR_Render2Texture_Settings_Object,
 
            VIEW3D_PT_lr_Render2Texture_setup,
-           VIEW3D_PT_lr_Render2Texture_normal,
-           VIEW3D_PT_lr_Render2Texture_alpha,
-           VIEW3D_PT_lr_Render2Texture_ao_scene,
+        #    VIEW3D_PT_lr_Render2Texture_normal,
+        #    VIEW3D_PT_lr_Render2Texture_alpha,
+        #    VIEW3D_PT_lr_Render2Texture_ao_scene,
 
            LR_TOOLS_OT_R2T_Render,
            LR_TOOLS_OT_r2t_new_camera,
-           LR_TOOLS_OT_r2t_append_mg)
+           LR_TOOLS_OT_r2t_append_ng)
 
 def register():
     for cls in classes:

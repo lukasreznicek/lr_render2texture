@@ -1,0 +1,12 @@
+schema_version = "1.0.0"
+version = "1.0.0"
+id = "lr_r2t"
+name = "LR R2T"
+tagline = "Renders scene into texture files"
+maintainer = "Lukas Reznicek <lukasreznicek@gmail.com>"
+type = "add-on"
+tags = ["render"]
+blender_version_min = "4.2.0"
+license = ["SPDX:GPL-2.0-or-later"]
+#website = ""
+copyright = ["2024 Lukas Reznicek"]

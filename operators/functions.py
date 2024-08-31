@@ -1,17 +1,17 @@
 import bpy,os
          
 
-def get_path_to_addon(addon_folder_name):
-    script_folder = bpy.utils.script_paths()
-    script_folder.reverse()
+# def get_path_to_addon(addon_folder_name):
+#     script_folder = bpy.utils.script_paths()
+#     script_folder.reverse()
 
-    for path in script_folder:
-        path = os.path.join(path,'addons')
-        if os.path.exists(path):
-            if addon_folder_name in os.listdir(path):
-                return os.path.join(path,addon_folder_name)
-            else:
-                return None
+#     for path in script_folder:
+#         path = os.path.join(path,'addons')
+#         if os.path.exists(path):
+#             if addon_folder_name in os.listdir(path):
+#                 return os.path.join(path,addon_folder_name)
+#             else:
+#                 return None
 
 # Get the node group
 def get_material_group_outputs(material_group_name):
